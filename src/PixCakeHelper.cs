@@ -587,8 +587,12 @@ namespace PixCakeHelper
         {
             if (!File.Exists(configPath))
             {
-                MessageBox.Show("找不到配置文件 accounts.json，请确保该文件在程序同目录下！", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
+                // Create a default empty config if it doesn't exist
+                password = "";
+                accounts = new List<AccountData>();
+                presets = new List<PresetData>();
+                SaveConfig();
+                return true;
             }
             try
             {
