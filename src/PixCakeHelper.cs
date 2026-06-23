@@ -129,6 +129,7 @@ namespace PixCakeHelper
         private void SetupForm()
         {
             this.Text = "像素蛋糕多账号 & 预设管理助手";
+            try { this.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
             this.AutoScaleMode = AutoScaleMode.None;
             this.ClientSize = new Size(S(600), S(700));
             this.StartPosition = FormStartPosition.CenterScreen;
