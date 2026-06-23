@@ -815,20 +815,41 @@ namespace PixCakeHelper
                             FallbackImport(json);
                             return;
                         }
-                        if (MessageBox.Show("即将覆盖当前的账号和预设列表。\n确定要导入存档吗？", "确认导入", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+                        if (MessageBox.Show("确定要将存档中的数据合并到当前列表吗？", "确认导入", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
                         {
-                            this.password = cfg.password ?? "";
-                            this.accounts = cfg.accounts != null ? new List<AccountData>(cfg.accounts) : new List<AccountData>();
-                            this.presets = cfg.presets != null ? new List<PresetData>(cfg.presets) : new List<PresetData>();
+                            int addedAcc = 0;
+                            int addedPre = 0;
+
+                            if (!string.IsNullOrEmpty(cfg.password)) this.password = cfg.password;
+
+                            if (cfg.accounts != null)
+                            {
+                                foreach (var a in cfg.accounts)
+                                {
+                                    bool exists = false;
+                                    foreach (var ex in this.accounts) { if (ex.username == a.username) { exists = true; break; } }
+                                    if (!exists) { this.accounts.Add(a); addedAcc++; }
+                                }
+                            }
+                            if (cfg.presets != null)
+                            {
+                                foreach (var p in cfg.presets)
+                                {
+                                    bool exists = false;
+                                    foreach (var ex in this.presets) { if (ex.name == p.name) { exists = true; break; } }
+                                    if (!exists) { this.presets.Add(p); addedPre++; }
+                                }
+                            }
+
                             SaveConfig();
                             RefreshAccountList(-1);
                             RefreshPresetList();
-                            statusBar.Text = "存档导入成功！"; statusBar.ForeColor = Green;
+                            statusBar.Text = string.Format("成功导入 {0} 个账号，{1} 个预设！", addedAcc, addedPre); statusBar.ForeColor = Green;
                         }
                     }
                     catch (Exception)
                     {
-                        // Fallback if deserialization throws exception (e.g. old array format)
+                        // Fallback if deserialization throws exception
                         string json = File.ReadAllText(ofd.FileName, Encoding.UTF8);
                         FallbackImport(json);
                     }
@@ -839,7 +860,25 @@ namespace PixCakeHelper
         private void FallbackImport(string rawText)
         {
             var lines = rawText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            int added = 0;
+            int addedAcc = 0;
+            int addedPre = 0;
+
+            // 1. Try to extract presets from JSON-like strings
+            try
+            {
+                var matchPresets = Regex.Matches(rawText, @"""name""\s*:\s*""([^""]+)""\s*,\s*""content""\s*:\s*""([^""]+)""");
+                foreach (Match m in matchPresets)
+                {
+                    string name = m.Groups[1].Value.Trim();
+                    string content = m.Groups[2].Value.Trim();
+                    bool exists = false;
+                    foreach (var ex in presets) { if (ex.name == name) { exists = true; break; } }
+                    if (!exists) { presets.Add(new PresetData { name = name, content = content }); addedPre++; }
+                }
+            }
+            catch { }
+
+            // 2. Line by line parsing for accounts and raw text presets
             foreach (var line in lines)
             {
                 var accMatch = Regex.Match(line, @"1[3-9]\d{9}");
@@ -847,14 +886,25 @@ namespace PixCakeHelper
                 {
                     string acc = accMatch.Value;
                     bool exists = false;
-                    foreach (var existing in accounts) { if (existing.username == acc) { exists = true; break; } }
-                    if (!exists) { accounts.Add(new AccountData { username = acc, used = false }); added++; }
+                    foreach (var ex in accounts) { if (ex.username == acc) { exists = true; break; } }
+                    if (!exists) { accounts.Add(new AccountData { username = acc, used = false }); addedAcc++; }
+                }
+
+                var preMatch = Regex.Match(line, @"好友给你分享了1个预设-(.+?)等「(.+?)」");
+                if (preMatch.Success)
+                {
+                    string name = preMatch.Groups[1].Value.Trim();
+                    string content = preMatch.Groups[2].Value.Trim();
+                    bool exists = false;
+                    foreach (var ex in presets) { if (ex.name == name) { exists = true; break; } }
+                    if (!exists) { presets.Add(new PresetData { name = name, content = content }); addedPre++; }
                 }
             }
-            if (added > 0)
+
+            if (addedAcc > 0 || addedPre > 0)
             {
-                SaveConfig(); RefreshAccountList(-1);
-                statusBar.Text = string.Format("已尝试兼容模式导入 {0} 个账号！", added); statusBar.ForeColor = Color.Orange;
+                SaveConfig(); RefreshAccountList(-1); RefreshPresetList();
+                statusBar.Text = string.Format("兼容模式：导入 {0} 个账号，{1} 个预设！", addedAcc, addedPre); statusBar.ForeColor = Color.Orange;
             }
             else MessageBox.Show("无法识别此存档的格式！", "导入失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
