@@ -827,7 +827,15 @@ namespace PixCakeHelper
                                 foreach (var a in cfg.accounts)
                                 {
                                     bool exists = false;
-                                    foreach (var ex in this.accounts) { if (ex.username == a.username) { exists = true; break; } }
+                                    foreach (var ex in this.accounts)
+                                    {
+                                        if (ex.username == a.username)
+                                        {
+                                            exists = true;
+                                            if (string.IsNullOrEmpty(ex.password) && !string.IsNullOrEmpty(a.password)) { ex.password = a.password; }
+                                            break;
+                                        }
+                                    }
                                     if (!exists) { this.accounts.Add(a); addedAcc++; }
                                 }
                             }
@@ -885,9 +893,27 @@ namespace PixCakeHelper
                 if (accMatch.Success)
                 {
                     string acc = accMatch.Value;
+                    string pwd = null;
+                    
+                    // Smart extract password like clipboard logic
+                    string remain = line.Replace(acc, "");
+                    remain = Regex.Replace(remain, @"(?:卡号|密码|账号|username|password|""|[:：\-\s,{}]+)", " ").Trim();
+                    if (!string.IsNullOrEmpty(remain))
+                    {
+                        pwd = remain.Split(' ')[0];
+                    }
+
                     bool exists = false;
-                    foreach (var ex in accounts) { if (ex.username == acc) { exists = true; break; } }
-                    if (!exists) { accounts.Add(new AccountData { username = acc, used = false }); addedAcc++; }
+                    foreach (var ex in accounts)
+                    {
+                        if (ex.username == acc)
+                        {
+                            exists = true;
+                            if (string.IsNullOrEmpty(ex.password) && !string.IsNullOrEmpty(pwd)) { ex.password = pwd; }
+                            break;
+                        }
+                    }
+                    if (!exists) { accounts.Add(new AccountData { username = acc, password = pwd, used = false }); addedAcc++; }
                 }
 
                 var preMatch = Regex.Match(line, @"好友给你分享了1个预设-(.+?)等「(.+?)」");
