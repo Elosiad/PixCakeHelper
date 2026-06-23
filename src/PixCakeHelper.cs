@@ -713,15 +713,39 @@ namespace PixCakeHelper
                 string l = line.Trim();
                 if (string.IsNullOrEmpty(l)) continue;
                 
-                string acc = l;
+                string acc = null;
                 string pwd = null;
 
-                // Handle delimiters: ----, space, comma, tab
-                var match = Regex.Match(l, @"^(.+?)(----|\s+|,|\t)(.+)$");
-                if (match.Success)
+                // 1. Try to find an 11-digit phone number as account
+                var accMatch = Regex.Match(l, @"1[3-9]\d{9}");
+                if (accMatch.Success)
                 {
-                    acc = match.Groups[1].Value.Trim();
-                    pwd = match.Groups[3].Value.Trim();
+                    acc = accMatch.Value;
+                    
+                    // 2. Strip the account and common labels to find the password
+                    string remain = l.Replace(acc, "");
+                    remain = Regex.Replace(remain, @"(?:卡号|密码|账号|[:：\-\s,]+)", " ").Trim();
+                    
+                    if (!string.IsNullOrEmpty(remain))
+                    {
+                        // Assume whatever is left (first chunk) is the password
+                        pwd = remain.Split(' ')[0];
+                    }
+                }
+                else
+                {
+                    // Fallback: if not phone number, strip labels and split
+                    string clean = Regex.Replace(l, @"(?:卡号|密码|账号|[:：]+)", " ").Trim();
+                    var match = Regex.Match(clean, @"^(.+?)(----|\s+|,|\t)(.+)$");
+                    if (match.Success)
+                    {
+                        acc = match.Groups[1].Value.Trim();
+                        pwd = match.Groups[3].Value.Trim();
+                    }
+                    else
+                    {
+                        acc = clean;
+                    }
                 }
 
                 // Check for duplicates
