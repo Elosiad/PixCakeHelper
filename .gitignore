@@ -1,0 +1,14 @@
+# Ignore local config with passwords
+accounts.json
+
+# Ignore built executables
+*.exe
+
+# Ignore logs
+*.log
+
+# Ignore VS code / IDE folders
+.vscode/
+.vs/
+*.user
+*.suo
