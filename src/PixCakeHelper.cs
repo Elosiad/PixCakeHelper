@@ -1010,9 +1010,20 @@ namespace PixCakeHelper
         // ════ Utilities ════
         private bool ActivatePixCake()
         {
-            string[] titles = { "像素蛋糕", "PixCake", "PixCakeAI" };
-            foreach (var proc in Process.GetProcesses())
-            { try { string t = proc.MainWindowTitle; if (!string.IsNullOrEmpty(t)) foreach (var tt in titles) if (t.IndexOf(tt, StringComparison.OrdinalIgnoreCase) >= 0) { NativeMethods.SetForegroundWindow(proc.MainWindowHandle); return true; } } catch { } }
+            string[] names = { "PixCake", "PixCakeAI" };
+            foreach (var name in names)
+            {
+                var procs = Process.GetProcessesByName(name);
+                foreach (var proc in procs)
+                {
+                    if (proc.MainWindowHandle != IntPtr.Zero)
+                    {
+                        NativeMethods.ShowWindow(proc.MainWindowHandle, NativeMethods.SW_RESTORE);
+                        NativeMethods.SetForegroundWindow(proc.MainWindowHandle);
+                        return true;
+                    }
+                }
+            }
             return false;
         }
 
