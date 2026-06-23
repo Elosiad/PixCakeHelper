@@ -168,9 +168,8 @@ namespace PixCakeHelper
             this.Controls.Add(navPanel);
             navPanel.MouseDown += DragForm;
 
-            // Logo image
-            string pngPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app.png");
-            if (File.Exists(pngPath))
+            // Logo image (extract from exe instead of relying on external app.png)
+            if (this.Icon != null)
             {
                 var img = new PictureBox
                 {
@@ -179,7 +178,7 @@ namespace PixCakeHelper
                     Location = new Point(S(14), S(11)),
                     Cursor = Cursors.SizeAll, BackColor = Color.Transparent
                 };
-                try { img.Image = Image.FromFile(pngPath); } catch { }
+                try { img.Image = this.Icon.ToBitmap(); } catch { }
                 img.MouseDown += DragForm;
                 navPanel.Controls.Add(img);
             }
