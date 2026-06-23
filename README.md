@@ -17,16 +17,7 @@
 直接在 [Releases](https://github.com/Elosiad/PixCakeHelper/releases/latest) 页面下载最新版本的 `PixCakeHelper.exe`。
 将它放在任意文件夹中运行即可。第一次运行会自动生成配置文件。
 
-### 方式二：从源码编译
-如果你安装了 .NET Framework，你可以直接克隆此仓库并双击运行 `build.bat`。它会使用 Windows 自带的 `csc.exe` 一键编译。
 
-```cmd
-git clone https://github.com/Elosiad/PixCakeHelper.git
-cd PixCakeHelper
-build.bat
-```
-
-## 📄 配置文件
 
 软件会在同级目录下生成 `accounts.json`。你可以随时在此处备份或修改你的账号和密码：
 
