@@ -804,7 +804,7 @@ namespace PixCakeHelper
             {
                 ofd.Title = "选择存档文件 (accounts.json)";
                 ofd.Filter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*";
-                if (ofd.ShowDialog() == DialogResult.OK)
+                if (ofd.ShowDialog(this) == DialogResult.OK)
                 {
                     try
                     {
@@ -812,7 +812,7 @@ namespace PixCakeHelper
                         var cfg = new JavaScriptSerializer().Deserialize<ConfigData>(json);
                         if (cfg == null || (cfg.accounts == null && cfg.presets == null))
                         {
-                            MessageBox.Show("无效的存档文件格式！", "导入失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            FallbackImport(json);
                             return;
                         }
                         if (MessageBox.Show("即将覆盖当前的账号和预设列表。\n确定要导入存档吗？", "确认导入", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
@@ -826,12 +826,37 @@ namespace PixCakeHelper
                             statusBar.Text = "存档导入成功！"; statusBar.ForeColor = Green;
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        MessageBox.Show("导入存档失败：" + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        // Fallback if deserialization throws exception (e.g. old array format)
+                        string json = File.ReadAllText(ofd.FileName, Encoding.UTF8);
+                        FallbackImport(json);
                     }
                 }
             }
+        }
+
+        private void FallbackImport(string rawText)
+        {
+            var lines = rawText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            int added = 0;
+            foreach (var line in lines)
+            {
+                var accMatch = Regex.Match(line, @"1[3-9]\d{9}");
+                if (accMatch.Success)
+                {
+                    string acc = accMatch.Value;
+                    bool exists = false;
+                    foreach (var existing in accounts) { if (existing.username == acc) { exists = true; break; } }
+                    if (!exists) { accounts.Add(new AccountData { username = acc, used = false }); added++; }
+                }
+            }
+            if (added > 0)
+            {
+                SaveConfig(); RefreshAccountList(-1);
+                statusBar.Text = string.Format("已尝试兼容模式导入 {0} 个账号！", added); statusBar.ForeColor = Color.Orange;
+            }
+            else MessageBox.Show("无法识别此存档的格式！", "导入失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         private void DoSavePreset()
