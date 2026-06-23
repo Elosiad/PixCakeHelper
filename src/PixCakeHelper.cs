@@ -34,9 +34,11 @@ namespace PixCakeHelper
         [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
         [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
         public static extern int SetWindowTheme(IntPtr hwnd, string appName, string subIdList);
+        [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HTCAPTION = 2;
         public const int CS_DROPSHADOW = 0x00020000;
+        public const int SW_RESTORE = 9;
     }
 
     // ═══ Main Form ═══
