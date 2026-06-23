@@ -353,9 +353,19 @@ namespace PixCakeHelper
             btnImport.Click += (s, e) => DoImportAccounts();
             panelAccounts.Controls.Add(btnImport);
 
-            var btnClear = MakeButton("🗑️ 删除选中项", new Point(pad + halfW + gap, y), new Size(halfW, S(40)), Red, Color.White);
-            btnClear.Click += (s, e) => DoDeleteAccount();
-            panelAccounts.Controls.Add(btnClear);
+            var btnClearItem = MakeButton("🗑️ 删除选中项", new Point(pad + halfW + gap, y), new Size(halfW, S(40)), DarkGray, Color.White);
+            btnClearItem.Click += (s, e) => DoDeleteAccount();
+            panelAccounts.Controls.Add(btnClearItem);
+            y += S(40) + gap;
+
+            // Button row 4
+            var btnImportArc = MakeButton("📂 从外部导入存档", new Point(pad, y), new Size(halfW, S(40)), DarkGray, Color.White);
+            btnImportArc.Click += (s, e) => DoImportArchive();
+            panelAccounts.Controls.Add(btnImportArc);
+
+            var btnClearAll = MakeButton("⚠️ 清空所有账号", new Point(pad + halfW + gap, y), new Size(halfW, S(40)), Red, Color.White);
+            btnClearAll.Click += (s, e) => DoClearAccounts();
+            panelAccounts.Controls.Add(btnClearAll);
         }
 
         // ──── Presets Panel (dynamic Y layout) ────
@@ -444,6 +454,12 @@ namespace PixCakeHelper
             btnCopy.Click += (s, e) => DoCopyPreset();
             panelPresets.Controls.Add(btnCopy);
             y += S(44) + gap;
+
+            // Clear all presets
+            var btnClearAllPresets = MakeButton("⚠️ 清空所有预设", new Point(pad, y), new Size(formW, S(40)), Red, Color.White);
+            btnClearAllPresets.Click += (s, e) => DoClearPresets();
+            panelPresets.Controls.Add(btnClearAllPresets);
+            y += S(40) + gap;
 
             // Status
             presetStatus = new Label
@@ -775,6 +791,49 @@ namespace PixCakeHelper
             { accounts.RemoveAt(idx); SaveConfig(); RefreshAccountList(-1); statusBar.Text = "已删除账号【" + acc + "】。"; statusBar.ForeColor = Green; }
         }
 
+        private void DoClearAccounts()
+        {
+            if (accounts.Count == 0) return;
+            if (MessageBox.Show("警告：此操作将清空列表中的所有账号！\n确定要继续吗？", "清空账号", MessageBoxButtons.YesNo, MessageBoxIcon.Error) == DialogResult.Yes)
+            { accounts.Clear(); SaveConfig(); RefreshAccountList(-1); statusBar.Text = "已清空所有账号。"; statusBar.ForeColor = Green; }
+        }
+
+        private void DoImportArchive()
+        {
+            using (OpenFileDialog ofd = new OpenFileDialog())
+            {
+                ofd.Title = "选择存档文件 (accounts.json)";
+                ofd.Filter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*";
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        string json = File.ReadAllText(ofd.FileName, Encoding.UTF8);
+                        var cfg = new JavaScriptSerializer().Deserialize<ConfigData>(json);
+                        if (cfg == null || (cfg.accounts == null && cfg.presets == null))
+                        {
+                            MessageBox.Show("无效的存档文件格式！", "导入失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+                        if (MessageBox.Show("即将覆盖当前的账号和预设列表。\n确定要导入存档吗？", "确认导入", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+                        {
+                            this.password = cfg.password ?? "";
+                            this.accounts = cfg.accounts != null ? new List<AccountData>(cfg.accounts) : new List<AccountData>();
+                            this.presets = cfg.presets != null ? new List<PresetData>(cfg.presets) : new List<PresetData>();
+                            SaveConfig();
+                            RefreshAccountList(-1);
+                            RefreshPresetList();
+                            statusBar.Text = "存档导入成功！"; statusBar.ForeColor = Green;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("导入存档失败：" + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
         private void DoSavePreset()
         {
             string name = txtPresetName.Text.Trim();
@@ -808,6 +867,13 @@ namespace PixCakeHelper
             string name = presets[idx].name;
             if (MessageBox.Show("确定要删除预设【" + name + "】吗？", "确认删除", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             { presets.RemoveAt(idx); SaveConfig(); RefreshPresetList(); presetStatus.Text = "已删除预设【" + name + "】。"; presetStatus.ForeColor = Green; }
+        }
+
+        private void DoClearPresets()
+        {
+            if (presets.Count == 0) return;
+            if (MessageBox.Show("警告：此操作将清空列表中的所有预设！\n确定要继续吗？", "清空预设", MessageBoxButtons.YesNo, MessageBoxIcon.Error) == DialogResult.Yes)
+            { presets.Clear(); SaveConfig(); RefreshPresetList(); presetStatus.Text = "已清空所有预设。"; presetStatus.ForeColor = Green; }
         }
 
         private void DoPastePreset()
